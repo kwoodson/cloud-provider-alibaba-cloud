@@ -21,14 +21,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cloud-provider"
+	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/controller/node"
 	"k8s.io/klog"
-	"strings"
 )
 
 // InstanceClient wrap for instance sdk
@@ -82,6 +83,8 @@ func (s *InstanceClient) filterOutByLabel(nodes []*v1.Node, labels string) ([]*v
 // 1) the id of the instance in the alicloud API. Use '.' to separate providerID which looks like 'cn-hangzhou.i-v98dklsmnxkkgiiil7'. The format of "REGION.NODEID"
 // 2) the id for an instance in the kubernetes API, which has 'alicloud://' prefix. e.g. alicloud://cn-hangzhou.i-v98dklsmnxkkgiiil7
 func nodeFromProviderID(providerID string) (common.Region, string, error) {
+	klog.Infof("nodeFromProviderID: providerID=%s", providerID)
+	// providerID = fmt.Sprintf("alicloud://%v", providerID)
 	if strings.HasPrefix(providerID, ProviderName+"://") {
 		k8sName := strings.Split(providerID, "://")
 		if len(k8sName) < 2 {
@@ -161,6 +164,7 @@ func (s *InstanceClient) findInstanceByNodeName(ctx context.Context, nodeName ty
 }
 
 func (s *InstanceClient) findInstanceByProviderID(ctx context.Context, providerID string) (*ecs.InstanceAttributesType, error) {
+	klog.Infof("findInstanceByProviderID: providerid=%v", providerID)
 	region, nodeid, err := nodeFromProviderID(providerID)
 	if err != nil {
 		return nil, err
@@ -183,8 +187,10 @@ func (s *InstanceClient) findInstanceByProviderID(ctx context.Context, providerI
 }
 
 func (s *InstanceClient) ListInstances(ctx context.Context, ids []string) (map[string]*node.CloudNodeAttribute, error) {
+	klog.Info("ListInstances: ranging over %v IDS", len(ids))
 	nodeRegionMap := make(map[common.Region][]string)
 	for _, id := range ids {
+		klog.Info("ListInstances: calling nodeFromProviderID with ID=", id)
 		regionID, nodeID, err := nodeFromProviderID(id)
 		if err != nil {
 			return nil, err

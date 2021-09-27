@@ -22,7 +22,8 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/api/core/v1"
+	"github.com/davecgh/go-spew/spew"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
@@ -96,6 +97,8 @@ func GetInstanceProviderID(ctx context.Context, cloud Interface, nodeName types.
 	if !ok {
 		return "", fmt.Errorf("failed to get instances from cloud provider")
 	}
+	spew.Dump("GetInstanceProviderID: dumping instances")
+	spew.Dump(instances)
 	instanceID, err := instances.InstanceID(ctx, nodeName)
 	if err != nil {
 		if err == NotImplemented {

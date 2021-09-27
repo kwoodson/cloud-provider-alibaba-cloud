@@ -19,15 +19,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/utils/metric"
 	"k8s.io/klog"
-	"time"
 
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 
 	"strings"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -41,8 +42,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/controller/route"
 	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/utils"
+
 	//nodeutilv1 "k8s.io/kubernetes/pkg/api/v1/node"
-	"k8s.io/cloud-provider"
+	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/cloud-provider/api"
 	"k8s.io/cloud-provider/node/helpers"
 	metrics "k8s.io/component-base/metrics/prometheus/ratelimiter"
@@ -366,6 +368,7 @@ func (cnc *CloudNodeController) doAddCloudNode(node *v1.Node) error {
 				klog.Errorf("failed to get provider ID for node %s at cloudprovider: %v", node.Name, err)
 				return false, nil
 			}
+			klog.Info("doAddCloudNode: providerID=", providerID)
 
 			cloudIns, err := cnc.getCloudInstance(ctx, ins, providerID)
 			if err != nil {
@@ -605,7 +608,9 @@ func (cnc *CloudNodeController) getProviderID(node *v1.Node) (string, error) {
 	if node.Spec.ProviderID != "" {
 		return node.Spec.ProviderID, nil
 	}
-
+	// klog.Info("getProviderID: dumping node")
+	// spew.Dump(node)
+	klog.Info("getProviderID: dumping node name", types.NodeName(node.Name))
 	providerID, err := cloudprovider.GetInstanceProviderID(context.Background(), cnc.cloud, types.NodeName(node.Name))
 	if err == cloudprovider.NotImplemented {
 		// we should attempt to set providerID on curNode, but
@@ -614,14 +619,19 @@ func (cnc *CloudNodeController) getProviderID(node *v1.Node) (string, error) {
 		klog.Warningf("cloud provider does not set node provider ID, using node name to discover node %s", node.Name)
 		return "", nil
 	}
-
-	return providerID, err
+	klog.Infof("getProviderID: providerID=%s", providerID)
+	klog.Infof("getProviderID: providerID err=%s", err)
+	if strings.HasPrefix(providerID, "alicloud") {
+		return providerID, err
+	}
+	return fmt.Sprintf("%v.%v", "us-east-1", providerID), err
 }
 
 func (cnc *CloudNodeController) getCloudInstance(
 	ctx context.Context, ins CloudInstance,
 	providerID string,
 ) (*CloudNodeAttribute, error) {
+	klog.Info("getCloudInstance: calling list instances with providerID=", providerID)
 	nodes, err := ins.ListInstances(ctx, []string{providerID})
 	if err != nil {
 		return nil, fmt.Errorf("cloud instance api fail, %s", err.Error())

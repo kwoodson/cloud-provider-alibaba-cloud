@@ -22,26 +22,28 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/denverdino/aliyungo/common"
-	"github.com/denverdino/aliyungo/ecs"
-	"github.com/denverdino/aliyungo/slb"
 	"io"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/cloud-provider"
-	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/controller/node"
-	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/controller/route"
-	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/utils"
-	"k8s.io/klog"
-	controller "k8s.io/kube-aggregator/pkg/controllers"
 	"math/rand"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/denverdino/aliyungo/common"
+	"github.com/denverdino/aliyungo/ecs"
+	"github.com/denverdino/aliyungo/slb"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/controller/node"
+	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/controller/route"
+	"k8s.io/cloud-provider-alibaba-cloud/cloud-controller-manager/utils"
+	"k8s.io/klog"
+	controller "k8s.io/kube-aggregator/pkg/controllers"
 )
 
 // ProviderName is the name of this cloud provider.
@@ -515,12 +517,17 @@ func (c *Cloud) ExternalID(ctx context.Context, nodeName types.NodeName) (string
 
 // InstanceID returns the cloud provider ID of the node with the specified NodeName.
 func (c *Cloud) InstanceID(ctx context.Context, nodeName types.NodeName) (string, error) {
-	klog.V(5).Infof("Alicloud.InstanceID(\"%s\")", nodeName)
+	// klog.Infof("InstancdID: dumping nodeName=%v", nodeName)
+	klog.Infof("Alicloud.InstanceID(\"%s\")", nodeName)
 	instance, err := c.climgr.Instances().findInstanceByNodeName(ctx, nodeName)
 	if err != nil {
+		klog.Infof("InstanceID: err=%v", err)
 		return "", err
 	}
-	return instance.InstanceId, nil
+	klog.Infof("InstanceID: dumping instance")
+	spew.Dump(instance)
+	return fmt.Sprintf("%v.%v", instance.RegionId, instance.InstanceId), nil
+	// return instance.InstanceId, nil
 }
 
 // InstanceType returns the type of the specified instance.

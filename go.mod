@@ -3,6 +3,7 @@ module k8s.io/cloud-provider-alibaba-cloud
 go 1.14
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	github.com/denverdino/aliyungo v0.0.0-20201222091910-a47aa053adf7
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/ghodss/yaml v1.0.0
